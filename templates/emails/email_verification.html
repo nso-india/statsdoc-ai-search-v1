@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - MOSPI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .title {
+            color: #3498db;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .verification-btn {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .verification-btn:hover {
+            background-color: #2980b9;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .verification-link {
+            word-break: break-all;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo" style="font-size: 18px; font-weight:700;">MoSPI StatsDoc AI Assistantβeta</div>
+            <div class="logo" style="font-size:14px; color:#2c3e50; margin-bottom:10px;">{{ site_name }}</div>
+            <h1 class="title">Verify Your Email Address</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hello {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %},</p>
+            
+            <p>Thank you for showing your interest in using MoSPI StatsDoc AI Assistantβeta.</p>
+            
+            <p>To complete your registration, please verify your email address by clicking the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="verification-btn">Click Here</a>
+            </div>
+            
+            <p>If the button doesn't work, you can copy and paste the following link into your browser:</p>
+            <div class="verification-link">{{ verification_url }}</div>
+            
+            <p><strong>Important:</strong> This verification link will expire in 24 hours for security reasons.</p>
+            
+            <p>If you didn't create an account with {{ site_name }}, please ignore this email.</p>
+            
+            <p>Best regards,<br>
+            The {{ site_name }} Team</p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>This is an Auto Generated E-Mail. Please don't reply to this E-Mail.</strong></p>
+            <p>&copy; 2026 {{ site_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

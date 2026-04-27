@@ -1,0 +1,5 @@
+watchdog>=3.0
+ipython
+django-debug-toolbar>=4.0
+debugpy
+watchdog[watchmedo]

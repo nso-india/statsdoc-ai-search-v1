@@ -1,0 +1,35 @@
+# Constants for file processing status
+PENDING = "PENDING"
+IN_PROGRESS = "IN_PROGRESS"
+# AI_REVIEW = "AI_REVIEW"
+UNDER_REVIEW = "UNDER_REVIEW"
+POST_REVIEW_PROCESSING = "POST_REVIEW_PROCESSING"
+POST_REVIEW_PROCESSING_FAILED = "POST_REVIEW_PROCESSING_FAILED"
+COMPLETED = "COMPLETED"
+FAILED = "FAILED"
+FILE_STATUS = (
+    (PENDING, "Pending"),
+    (IN_PROGRESS, "In Progress"),
+    (UNDER_REVIEW, "Under Review"),
+    (COMPLETED, "Completed"),
+    (POST_REVIEW_PROCESSING, "Post Review Processing"),
+    (FAILED, "Failed"),
+    (POST_REVIEW_PROCESSING_FAILED, "Post Review Processing Failed"),
+)
+
+# Constants for comment types
+EDIT = "EDIT"
+REMOVE = "REMOVE"
+TABLE_MERGE = "TABLE_MERGE"
+COMMENT_TYPES = ((EDIT, "Edit"), (REMOVE, "Remove"), (TABLE_MERGE, "Table Merge"))
+
+
+# Comments status
+COMMENT_PENDING = "PENDING"
+COMMENT_ACCEPTED = "ACCEPTED"
+COMMENT_REJECTED = "REJECTED"
+COMMENT_STATUS = (
+    (COMMENT_PENDING, "Pending"),
+    (COMMENT_ACCEPTED, "Accepted"),
+    (COMMENT_REJECTED, "Rejected"),
+)

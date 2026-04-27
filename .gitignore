@@ -1,0 +1,43 @@
+.venv
+venv/
+__pycache__
+db.sqlite3
+staticfiles
+*.pyc
+media
+.vscode
+node_modules
+
+# Frontend build artifacts and development files
+frontend/.env
+frontend/.env.*
+frontend/.svelte-kit/
+frontend/build/
+frontend/dist/
+frontend/.vercel/
+frontend/package-lock.json
+frontend/yarn.lock
+
+# IDE and editor files
+*.log
+.DS_Store
+*.swp
+*.swo
+
+# Python cache and build files
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Qdrant cache
+.qdrant_cache/
+
+# Environment secrets
+.env
+
+# Local data and runtime artifacts
+ollama/
+processed_file.json
+ps4/
+uploaded_files/

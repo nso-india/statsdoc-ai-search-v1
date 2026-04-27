@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <text x="26" y="28"
+        font-size="28" font-weight="700"
+        text-anchor="middle" dominant-baseline="middle"
+        fill="#4B5563"
+        font-family="Noto Sans Devanagari, Mangal, Arial Unicode MS, sans-serif">अ</text>
+
+  <text x="44" y="40"
+        font-size="34" font-weight="700"
+        text-anchor="middle" dominant-baseline="middle"
+        fill="#4B5563"
+        font-family="Inter, Arial, sans-serif">A</text>
+</svg>
