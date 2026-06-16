@@ -22,7 +22,7 @@ const config = {
 				'style-src': ['self', 'unsafe-inline', 'https://fonts.googleapis.com'],
 				'img-src': ['self', 'data:', 'https:'],
 				'font-src': ['self', 'data:', 'https://fonts.gstatic.com'],
-				'connect-src': ['self', 'https://api.openai.com', 'https://mospi.edubildai.com', 'https://mospiapi.edubildai.com', 'https://statsdoc.ai.mospi.gov.in', 'http://103.48.43.155', 'https://103.48.43.155'],
+				'connect-src': ['self', 'https://api.openai.com', 'https://mospi.edubildai.com', 'https://mospiapi.edubildai.com', 'https://statsdoc.ai.mospi.gov.in', 'wss://statsdoc.ai.mospi.gov.in', 'http://103.48.43.155', 'https://103.48.43.155', 'http://localhost:8000', 'http://127.0.0.1:8000', 'ws://localhost:8000', 'ws://127.0.0.1:8000'],
 				'frame-ancestors': ['none'],
 				'base-uri': ['self'],
 				'form-action': ['self']

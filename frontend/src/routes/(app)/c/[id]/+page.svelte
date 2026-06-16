@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { ArrowUp, Copy, ThumbsUp, ThumbsDown, MoreVertical, Edit, Volume2, RotateCcw, MessageCircle, Lightbulb, Mic, Plus, Check, X } from '@lucide/svelte/icons';
+	import { ArrowUp, Copy, MoreVertical, Edit, Volume2, RotateCcw, MessageCircle, Lightbulb, Mic, Plus, Check, X } from '@lucide/svelte/icons';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { writable, get } from 'svelte/store';
@@ -20,6 +20,11 @@
 	import MarkdownRenderer from '$lib/components/rag/MarkdownRenderer.svelte';
 	import PlotlyChart from '$lib/components/charts/PlotlyChart.svelte';
 	import { toast } from 'svelte-sonner';
+	import ResponseFeedbackBar from '$lib/components/chat/ResponseFeedbackBar.svelte';
+	import {
+		fetchChatResponseFeedback,
+		type ResponseFeedbackRating
+	} from '$lib/api/responseFeedback';
 
 	// Types for our message structure
 	interface MessageContent {
@@ -51,6 +56,7 @@
 	// Get conversation ID from URL params
 	let conversationId: string;
 	let messages: ChatMessage[] = [];
+	let responseFeedbackByMessageId: Record<string, ResponseFeedbackRating> = {};
 	let loading = true;
 	let error = '';
 	let sending = false;
@@ -494,26 +500,39 @@
 		}
 	}
 
-	function handleInput(event: Event) {
-		const textarea = event.target as HTMLTextAreaElement;
-		inputValue = textarea.value;
-		isInputEmpty = inputValue.trim() === '' && selectedFiles.length === 0;
-		
-		// Reset height to auto to get the actual scroll height
-		textarea.style.height = 'auto';
-		
-		// Set height based on scroll height, but within min/max bounds
-		const scrollHeight = textarea.scrollHeight;
-		const minHeight = 30; // min-h-[30px] to match main /c page
-		const maxHeight = 320; // max-h-80 (320px) to match main /c page
-		
+	function resizeTextarea(textareaEl: HTMLTextAreaElement) {
+		textareaEl.style.height = 'auto';
+		const scrollHeight = textareaEl.scrollHeight;
+		const minHeight = 30;
+		const maxHeight = 320;
+
 		if (scrollHeight <= maxHeight) {
-			textarea.style.height = Math.max(scrollHeight, minHeight) + 'px';
-			textarea.style.overflowY = 'hidden';
+			textareaEl.style.height = Math.max(scrollHeight, minHeight) + 'px';
+			textareaEl.style.overflowY = 'hidden';
 		} else {
-			textarea.style.height = maxHeight + 'px';
-			textarea.style.overflowY = 'auto';
+			textareaEl.style.height = maxHeight + 'px';
+			textareaEl.style.overflowY = 'auto';
 		}
+	}
+
+	function insertAtCursor(text: string, textareaEl?: HTMLTextAreaElement) {
+		const el = textareaEl ?? textarea;
+		if (!el) return;
+
+		const start = el.selectionStart ?? el.value.length;
+		const end = el.selectionEnd ?? start;
+		inputValue = inputValue.slice(0, start) + text + inputValue.slice(end);
+
+		requestAnimationFrame(() => {
+			const pos = start + text.length;
+			el.setSelectionRange(pos, pos);
+			el.focus();
+			resizeTextarea(el);
+		});
+	}
+
+	function handleInput(event: Event) {
+		resizeTextarea(event.target as HTMLTextAreaElement);
 	}
 
 	async function sendMessage() {
@@ -646,6 +665,9 @@
 					
 				case 'loading':
 					isLoading = data.loading;
+					if (!data.loading) {
+						sending = false;
+					}
 					console.log('Loading state changed:', isLoading);
 					break;
 					
@@ -653,6 +675,7 @@
 					console.error('WebSocket error:', data.message);
 					error = data.message || 'An error occurred while processing your request.';
 					isLoading = false;
+					sending = false;
 					break;
 					
 				default:
@@ -827,6 +850,9 @@
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
 			sendMessage();
+		} else if (event.key === 'Tab') {
+			event.preventDefault();
+			insertAtCursor('\t', event.target as HTMLTextAreaElement);
 		}
 	}
 
@@ -849,48 +875,107 @@
 	}
 
 	function handleEditInput(event: Event) {
-		const textarea = event.target as HTMLTextAreaElement;
-		editValue = textarea.value;
-		
-		// Auto-resize textarea
-		textarea.style.height = 'auto';
-		const scrollHeight = textarea.scrollHeight;
+		const el = event.target as HTMLTextAreaElement;
+		el.style.height = 'auto';
+		const scrollHeight = el.scrollHeight;
 		const minHeight = 40;
 		const maxHeight = 200;
-		
+
 		if (scrollHeight <= maxHeight) {
-			textarea.style.height = Math.max(scrollHeight, minHeight) + 'px';
-			textarea.style.overflowY = 'hidden';
+			el.style.height = Math.max(scrollHeight, minHeight) + 'px';
+			el.style.overflowY = 'hidden';
 		} else {
-			textarea.style.height = maxHeight + 'px';
-			textarea.style.overflowY = 'auto';
+			el.style.height = maxHeight + 'px';
+			el.style.overflowY = 'auto';
 		}
 	}
 
 	function handleEditKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
-			saveEditMessage();
+			submitEditedMessage();
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
 			cancelEdit();
+		} else if (event.key === 'Tab') {
+			event.preventDefault();
+			const el = event.target as HTMLTextAreaElement;
+			const start = el.selectionStart ?? el.value.length;
+			const end = el.selectionEnd ?? start;
+			editValue = editValue.slice(0, start) + '\t' + editValue.slice(end);
+			requestAnimationFrame(() => {
+				const pos = start + 1;
+				el.setSelectionRange(pos, pos);
+				handleEditInput({ target: el } as Event);
+			});
 		}
 	}
 
-	function saveEditMessage() {
+	async function submitEditedMessage() {
 		if (!editingMessageId || editValue.trim() === '') return;
-		
-		// Update the message content locally
-		messages = messages.map(msg => {
-			if (msg.id === editingMessageId) {
-				return { ...msg, content: editValue.trim() };
-			}
-			return msg;
-		});
-		
-		// Reset edit state
+
+		const messageId = editingMessageId;
+		if (messageId.startsWith('temp-')) {
+			toast.error('Please wait for the message to send before editing.');
+			return;
+		}
+
+		if (!chatWebSocket || !chatWebSocket.isConnected()) {
+			toast.error('Connection lost. Please refresh and try again.');
+			return;
+		}
+
+		const newContent = editValue.trim();
+		const editIndex = messages.findIndex((msg) => msg.id.toString() === messageId);
+		if (editIndex === -1) return;
+
+		const removedMessageIds = messages.slice(editIndex + 1).map((msg) => msg.id.toString());
+		const updatedMessage: ChatMessage = {
+			...messages[editIndex],
+			content: newContent
+		};
+
+		messages = [...messages.slice(0, editIndex), updatedMessage];
+		responseFeedbackByMessageId = Object.fromEntries(
+			Object.entries(responseFeedbackByMessageId).filter(
+				([id]) => !removedMessageIds.includes(id)
+			)
+		);
+
 		editingMessageId = null;
 		editValue = '';
+		isLoading = true;
+		sending = true;
+		scrollToBottom();
+
+		try {
+			chatWebSocket.sendEditMessage(
+				newContent,
+				messageId,
+				conversationId,
+				selectedLanguageId
+			);
+		} catch (err) {
+			console.error('Failed to resend edited message:', err);
+			isLoading = false;
+			sending = false;
+			toast.error('Failed to resend message. Please try again.');
+		}
+	}
+
+	async function copyUserMessage(message: ChatMessage) {
+		try {
+			const rawText = getMessageContent(message);
+			if (rawText && rawText !== '[object Object]' && rawText !== 'Error displaying message content') {
+				await navigator.clipboard.writeText(rawText);
+				toast.success('Copied to clipboard');
+			} else {
+				toast.error('No text content to copy');
+			}
+		} catch (err) {
+			console.error('Failed to copy:', err);
+			toast.error('Failed to copy to clipboard');
+		}
 	}
 
 	async function copyMessage(content: string | MessageContent) {
@@ -1005,6 +1090,38 @@
 
 	function removeSelectedFile(index: number) {
 		selectedFiles = selectedFiles.filter((_, i) => i !== index);
+	}
+
+	function isRateableMessage(message: ChatMessage): boolean {
+		if (message.role !== 'assistant') return false;
+		const id = message.id?.toString() || '';
+		if (!id || id.startsWith('temp-')) return false;
+		return /^\d+$/.test(id);
+	}
+
+	function handleResponseRated(messageId: string, rating: ResponseFeedbackRating) {
+		responseFeedbackByMessageId = {
+			...responseFeedbackByMessageId,
+			[messageId]: rating
+		};
+	}
+
+	async function loadResponseFeedback() {
+		if (!conversationId) return;
+
+		try {
+			const token = get(authToken);
+			const items = await fetchChatResponseFeedback(conversationId, token);
+			const next: Record<string, ResponseFeedbackRating> = {};
+
+			for (const item of items) {
+				next[String(item.message_id)] = item.rating;
+			}
+
+			responseFeedbackByMessageId = next;
+		} catch (err) {
+			console.warn('Could not load response feedback:', err);
+		}
 	}
 
 	async function loadChatHistory() {
@@ -1126,6 +1243,7 @@
 				});
 				
 				messages = validMessages;
+				await loadResponseFeedback();
 		} catch (err) {
 			console.error('Error loading chat history:', err);
 			// Don't show error for 404 - might be a new chat
@@ -1212,13 +1330,7 @@
 		const { text } = data.detail;
 		recording = false;
 		recordingLoading = false;
-		// Insert text at cursor position or append to input
-		inputValue += text;
-		isInputEmpty = inputValue.trim() === '';
-		// Focus textarea after inserting text
-		if (textarea) {
-			textarea.focus();
-		}
+		insertAtCursor(text);
 	}
 
 	async function handleFileUpload(event: Event) {
@@ -1291,8 +1403,8 @@
 		setTimeout(scrollToBottom, 100);
 	}
 
-	// Update isInputEmpty reactively - must have text input to submit
-	$: isInputEmpty = inputValue.trim() === '';
+	// Update isInputEmpty reactively - allow send when text or files are present
+	$: isInputEmpty = inputValue.trim() === '' && selectedFiles.length === 0;
 
 	function showDisclaimer() {
 		showDisclaimerModal = true;
@@ -1435,6 +1547,25 @@
 	.edit-textarea:focus {
 		outline: none;
 		box-shadow: none;
+	}
+
+	:global(.user-message-action-btn) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.375rem;
+		border-radius: 0.5rem;
+		transition: background-color 0.15s ease, color 0.15s ease;
+	}
+
+	:global(.user-message-action-btn:hover) {
+		background: rgba(0, 0, 0, 0.05);
+		color: #111827;
+	}
+
+	:global(.dark .user-message-action-btn:hover) {
+		background: rgba(255, 255, 255, 0.08);
+		color: #fff;
 	}
 
 	/* Background effects */
@@ -1609,11 +1740,11 @@
 																Cancel
 															</button>
 															<button 
-																on:click={saveEditMessage}
+																on:click={submitEditedMessage}
 																class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
-																title="Save (Enter)"
+																title="Send edited message (Enter)"
 															>
-																Save
+																Send
 															</button>
 														</div>
 													</div>
@@ -1659,8 +1790,33 @@
 												</div>
 											{/if}
 											
-											<div class="flex justify-end text-gray-600 dark:text-gray-400">
-												<!-- User message action buttons removed -->
+											<div class="flex justify-end text-gray-600 dark:text-gray-400 mt-1 pr-2">
+												{#if editingMessageId !== message.id.toString() && !message.id.toString().startsWith('temp-')}
+													<div class="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+														<button
+															type="button"
+															aria-label="Copy message"
+															title="Copy"
+															class="user-message-action-btn"
+															on:click={() => copyUserMessage(message)}
+														>
+															<Copy class="h-4 w-4" />
+														</button>
+														<button
+															type="button"
+															aria-label="Edit message"
+															title="Edit"
+															class="user-message-action-btn"
+															on:click={() =>
+																startEditMessage(
+																	message.id.toString(),
+																	getMessageContent(message)
+																)}
+														>
+															<Edit class="h-4 w-4" />
+														</button>
+													</div>
+												{/if}
 											</div>
 										</div>
 									</div>
@@ -1832,19 +1988,14 @@
 										</div>
 									</div>
 									
-									<!-- Action Buttons -->
-									<div class="flex justify-start overflow-x-auto buttons text-gray-600 dark:text-gray-400 mt-2">
-										<div class="flex">
-											<button 
-												aria-label="Copy response" 
-												title="Copy response"
-												on:click={() => copyMessage(message.content)}
-												class="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition copy-response-button"
-											>
-												<Copy class="w-4 h-4" />
-											</button>
-										</div>
-									</div>
+									<!-- Response feedback + copy -->
+									<ResponseFeedbackBar
+										messageId={message.id}
+										rating={responseFeedbackByMessageId[message.id] ?? null}
+										disabled={!isRateableMessage(message)}
+										onCopy={() => copyMessage(message.content)}
+										onRated={handleResponseRated}
+									/>
 								</div>
 							</div>
 						</div>
@@ -1922,7 +2073,7 @@
 										on:input={handleInput}
 										on:keydown={handleKeyDown}
 										bind:this={textarea}
-										disabled={sending || !wsConnected}
+										disabled={sending}
 									></textarea>
 								</div>
 							</div>
@@ -1942,6 +2093,7 @@
 									<div class="relative">
 										<select 
 											bind:value={selectedLanguageId}
+											tabindex="-1"
 											class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full py-1.5 pl-8 pr-3 outline-none focus:outline-none transition-all border border-gray-200 dark:border-gray-700 text-xs font-medium cursor-pointer appearance-none"
 										>
 											{#each languages as lang}
@@ -1958,6 +2110,7 @@
 										class="text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 transition rounded-full p-1.5" 
 										type="button" 
 										aria-label="Voice Input"
+										tabindex="-1"
 										on:click={startVoiceRecording}
 										disabled={recordingLoading || sending || !wsConnected}
 									>
@@ -1968,6 +2121,7 @@
 										id="send-message-button" 
 										class="text-white transition rounded-full p-1.5 {isInputEmpty || sending || !wsConnected ? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}" 
 										type="submit" 
+										tabindex="-1"
 										disabled={isInputEmpty || sending || !wsConnected}
 									>
 										{#if sending}

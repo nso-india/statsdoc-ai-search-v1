@@ -8,6 +8,8 @@
   import MoreVertical from "@lucide/svelte/icons/more-vertical";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import Database from "@lucide/svelte/icons/database";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import FeedbackFormDialog from "./FeedbackFormDialog.svelte";
   import { newChatApi } from "$lib/api/newchat";
   import { user } from "$lib/stores";
   import { goto } from "$app/navigation";
@@ -37,6 +39,7 @@
   let conversations: ChatItem[] = $state([]);
   let loading = $state(true);
   let error = $state('');
+  let feedbackOpen = $state(false);
 
   // Load conversations from Django API
   async function loadConversations() {
@@ -190,6 +193,14 @@
           <Database class="size-4" />
           <span>Knowledge</span>
         </a>
+        <button
+          type="button"
+          onclick={() => (feedbackOpen = true)}
+          class="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium sidebar-item rounded-md transition-colors text-left"
+        >
+          <MessageSquare class="size-4" />
+          <span>Feedback</span>
+        </button>
         {/if}
         {#if $user && ($user.is_staff || $user.is_superuser)}
         <a 
@@ -275,3 +286,5 @@
     {/if}
   </Sidebar.Footer>
 </Sidebar.Root>
+
+<FeedbackFormDialog bind:open={feedbackOpen} />

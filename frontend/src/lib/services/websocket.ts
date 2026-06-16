@@ -2,7 +2,7 @@ import { browser } from '$app/environment';
 import { get } from 'svelte/store';
 import { authToken } from '$lib/stores';
 import { toast } from 'svelte-sonner';
-import { REMOTE_BACKEND_HOST } from '$lib/constants';
+import { REMOTE_BACKEND_HOST, WEBSOCKET_BASE_URL } from '$lib/constants';
 
 // Simple WebSocket states
 export enum WebSocketState {
@@ -533,12 +533,7 @@ export function createDocumentWebSocketService(documentId: string, fileId?: stri
     throw new Error('WebSocket can only be created in browser environment');
   }
 
-  // Use the API domain for WebSocket connections
-  const wsProtocol = 'wss:';
-  const apiHostname = REMOTE_BACKEND_HOST;
-  
-  // Construct WebSocket URL - using the API domain
-  const wsUrl = `${wsProtocol}//${apiHostname}/ws/pdf_update/`;
+  const wsUrl = `${WEBSOCKET_BASE_URL}/ws/pdf_update/`;
   
   console.log('Creating WebSocket service for document:', documentId);
   
