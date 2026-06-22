@@ -12,7 +12,7 @@ python manage.py migrate
 python manage.py init_config
 
 if [ "$DEBUG" = "1" ]; then
-    python -m debugpy --listen 0.0.0.0:5678 -m django runserver 0.0.0:8000
+    python -m debugpy --listen 0.0.0.0:5678 -m django runserver 0.0.0.0:8000
 else
     # Start Gunicorn
     daphne -b 0.0.0.0 -p 8000 config.asgi:application

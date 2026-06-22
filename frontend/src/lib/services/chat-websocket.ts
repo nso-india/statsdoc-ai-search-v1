@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { get } from 'svelte/store';
 import { authToken } from '$lib/stores';
 import { toast } from 'svelte-sonner';
+import { WEBSOCKET_BASE_URL } from '$lib/constants/app';
 
 export interface ChatMessage {
   id: string;
@@ -27,6 +28,12 @@ export interface ChatWebSocketService {
   connect(): void;
   disconnect(): void;
   sendMessage(message: string, chatId?: string, languageId?: string | null): void;
+  sendEditMessage(
+    message: string,
+    editMessageId: string | number,
+    chatId?: string,
+    languageId?: string | null
+  ): void;
   onMessage(callback: (message: ChatMessage) => void): void;
   onLoading(callback: (loading: boolean) => void): void;
   onError(callback: (error: string) => void): void;
@@ -67,10 +74,7 @@ class ChatWebSocketServiceImpl implements ChatWebSocketService {
     }
 
     try {
-      // Use the same host as the API for WebSocket connection
-      const apiHost = import.meta.env.VITE_REMOTE_BACKEND_HOST || 'statsdoc.ai.mospi.gov.in';
-      const wsProtocol = 'wss:'; // Always use secure WebSocket for production
-      const wsUrl = `${wsProtocol}//${apiHost}/ws/chat/${this.chatId}/?token=${encodeURIComponent(token)}`;
+      const wsUrl = `${WEBSOCKET_BASE_URL}/ws/chat/${this.chatId}/?token=${encodeURIComponent(token)}`;
       
       console.log('Connecting to WebSocket:', wsUrl);
       this.ws = new WebSocket(wsUrl);
@@ -133,22 +137,48 @@ class ChatWebSocketServiceImpl implements ChatWebSocketService {
   }
 
   sendMessage(message: string, chatId?: string, languageId?: string | null): void {
+    this.sendPayload({
+      message,
+      chat_id: chatId || this.chatId,
+      language_id: languageId || undefined,
+    });
+  }
+
+  sendEditMessage(
+    message: string,
+    editMessageId: string | number,
+    chatId?: string,
+    languageId?: string | null
+  ): void {
+    this.sendPayload({
+      message,
+      chat_id: chatId || this.chatId,
+      edit_message_id: editMessageId,
+      language_id: languageId || undefined,
+    });
+  }
+
+  private sendPayload(payload: Record<string, unknown>): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       this.handleError('WebSocket is not connected');
       return;
     }
 
     try {
-      const payload: any = {
-        message: message,
-        chat_id: chatId || this.chatId
+      const body: Record<string, unknown> = {
+        message: payload.message,
+        chat_id: payload.chat_id,
       };
-      
-      if (languageId) {
-        payload.language_id = languageId;
+
+      if (payload.language_id) {
+        body.language_id = payload.language_id;
       }
 
-      this.ws.send(JSON.stringify(payload));
+      if (payload.edit_message_id !== undefined) {
+        body.edit_message_id = payload.edit_message_id;
+      }
+
+      this.ws.send(JSON.stringify(body));
     } catch (error) {
       console.error('Error sending message:', error);
       this.handleError('Failed to send message');

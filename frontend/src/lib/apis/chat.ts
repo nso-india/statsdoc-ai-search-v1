@@ -1,8 +1,4 @@
-// Chat API for handling file uploads and chat creation
-const REMOTE_BACKEND_HOST = import.meta.env.VITE_REMOTE_BACKEND_HOST || 'statsdoc.ai.mospi.gov.in';
-const WEBUI_API_BASE_URL = typeof window !== 'undefined' 
-	? `https://${REMOTE_BACKEND_HOST}/api`
-	: `http://web:8000/api`;
+import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 // Helper function for API requests
 async function apiRequest(endpoint: string, options: RequestInit = {}) {

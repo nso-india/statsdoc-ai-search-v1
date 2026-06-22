@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     "user_management",
     "chat",
     "application_settings",
+    "feedback",
 ]
 
 # Custom User Model
@@ -104,6 +105,11 @@ EMAIL_HOST_PASSWORD = get_env_variable("EMAIL_HOST_PASSWORD", "")
 # Email Verification Settings
 EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS = 24
 EMAIL_VERIFICATION_FROM_EMAIL = DEFAULT_FROM_EMAIL
+
+# Feedback form — comma-separated team inboxes for new submission alerts
+FEEDBACK_NOTIFY_EMAILS = get_env_variable(
+    "FEEDBACK_NOTIFY_EMAILS", default="di.lab@mospi.gov.in"
+)
 
 MIDDLEWARE = [
     "config.middleware.FixDuplicateHostMiddleware",  # Fix duplicate host headers from proxy

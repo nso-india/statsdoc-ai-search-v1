@@ -27,6 +27,7 @@
     
     // State for centered input (similar to /chat)
     let inputValue = '';
+    let textarea: HTMLTextAreaElement;
     let isInputEmpty = true;
     let isCreating = false;
     let ws: WebSocket | null = null;
@@ -217,24 +218,23 @@
         }
     }
 
-    function handleInput(event: Event) {
-        const textarea = event.target as HTMLTextAreaElement;
-        inputValue = textarea.value;
-        // isInputEmpty will be updated reactively
-        
-        // Auto-resize textarea
-        textarea.style.height = 'auto';
-        const scrollHeight = textarea.scrollHeight;
+    function resizeTextarea(textareaEl: HTMLTextAreaElement) {
+        textareaEl.style.height = 'auto';
+        const scrollHeight = textareaEl.scrollHeight;
         const minHeight = 30;
         const maxHeight = 320;
-        
+
         if (scrollHeight <= maxHeight) {
-            textarea.style.height = Math.max(scrollHeight, minHeight) + 'px';
-            textarea.style.overflowY = 'hidden';
+            textareaEl.style.height = Math.max(scrollHeight, minHeight) + 'px';
+            textareaEl.style.overflowY = 'hidden';
         } else {
-            textarea.style.height = maxHeight + 'px';
-            textarea.style.overflowY = 'auto';
+            textareaEl.style.height = maxHeight + 'px';
+            textareaEl.style.overflowY = 'auto';
         }
+    }
+
+    function handleInput(event: Event) {
+        resizeTextarea(event.target as HTMLTextAreaElement);
     }
 
     // File processing status polling
@@ -439,12 +439,30 @@
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             startNewConversation();
+        } else if (event.key === 'Tab') {
+            event.preventDefault();
+            insertTextAtCursor('\t', event.target as HTMLTextAreaElement);
         }
     }
 
     // Voice recording functions
-    function insertTextAtCursor(text: string) {
-        inputValue += text;
+    function insertTextAtCursor(text: string, textareaEl?: HTMLTextAreaElement) {
+        const el = textareaEl ?? textarea;
+        if (!el) {
+            inputValue += text;
+            return;
+        }
+
+        const start = el.selectionStart ?? el.value.length;
+        const end = el.selectionEnd ?? start;
+        inputValue = inputValue.slice(0, start) + text + inputValue.slice(end);
+
+        requestAnimationFrame(() => {
+            const pos = start + text.length;
+            el.setSelectionRange(pos, pos);
+            el.focus();
+            resizeTextarea(el);
+        });
     }
 
     async function startVoiceRecording() {
@@ -656,6 +674,7 @@
                                                 bind:value={inputValue}
                                                 on:input={handleInput}
                                                 on:keydown={handleKeyDown}
+                                                bind:this={textarea}
                                                 disabled={isCreating || !canSendMessage}
                                             ></textarea>
                                         </div>

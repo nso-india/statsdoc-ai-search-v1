@@ -100,6 +100,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         try:
             text_data_json = json.loads(text_data)
+            if text_data_json.get("edit_message_id"):
+                await self.handle_edit_message(text_data_json)
+                return
+
             message_content = text_data_json['message']
             chat_id = text_data_json.get('chat_id')
             language_id = text_data_json.get('language_id', None)
@@ -192,6 +196,107 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'error': f'Error processing message: {str(e)}'
             }))
 
+    async def handle_edit_message(self, data):
+        """Edit a prior user prompt and regenerate the assistant response."""
+        message_content = (data.get("message") or "").strip()
+        chat_id = data.get("chat_id")
+        language_id = data.get("language_id")
+        edit_message_id = data.get("edit_message_id")
+
+        if not message_content:
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": "Message cannot be empty.",
+            }))
+            return
+
+        try:
+            chat = await self.get_or_create_chat(
+                chat_id,
+                None,
+                knowledge_base_id=self.knowledge_base_id,
+            )
+        except ValueError as e:
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": str(e),
+            }))
+            return
+
+        if not hasattr(self, "room_group_name"):
+            self.room_group_name = chat.get_room_group_name()
+            await self.channel_layer.group_add(
+                self.room_group_name,
+                self.channel_name,
+            )
+
+        try:
+            user_message = await self.edit_user_message(
+                chat,
+                edit_message_id,
+                message_content,
+            )
+        except ValueError as e:
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": str(e),
+            }))
+            return
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "chat_message",
+                "message": {
+                    "id": user_message.id,
+                    "role": "user",
+                    "content": message_content,
+                    "timestamp": user_message.created_at.isoformat(),
+                    "chat_id": chat.id,
+                },
+            },
+        )
+
+        await self.send_loading_message(chat, True)
+
+        try:
+            response = await get_llm_response(chat, user_message, language_id)
+            complete_response = {"content": response}
+            assistant_message = await self.save_message(
+                chat,
+                "assistant",
+                json.dumps(complete_response),
+            )
+        except Exception as e:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "loading_message", "loading": False},
+            )
+            await self.send(text_data=json.dumps({
+                "type": "error",
+                "message": f"Error processing message: {str(e)}",
+            }))
+            return
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "loading_message", "loading": False},
+        )
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "chat_message",
+                "message": {
+                    "id": assistant_message.id,
+                    "role": "assistant",
+                    "content": response,
+                    "timestamp": assistant_message.created_at.isoformat(),
+                    "chat_id": chat.id,
+                },
+            },
+        )
+
     async def chat_message(self, event):
         message = event['message']
 
@@ -279,6 +384,23 @@ class ChatConsumer(AsyncWebsocketConsumer):
             role=role,
             content=content
         )
+
+    @database_sync_to_async
+    def edit_user_message(self, chat, message_id, new_content):
+        try:
+            message = Message.objects.select_related("chat").get(
+                id=message_id,
+                chat=chat,
+                chat__user=self.user,
+                role="user",
+            )
+        except Message.DoesNotExist as exc:
+            raise ValueError("Message not found or cannot be edited.") from exc
+
+        Message.objects.filter(chat=chat, created_at__gt=message.created_at).delete()
+        message.content = new_content
+        message.save(update_fields=["content"])
+        return message
 
     @database_sync_to_async
     def check_active_file_processing(self):

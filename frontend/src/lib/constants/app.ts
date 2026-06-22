@@ -3,27 +3,31 @@ import { browser, dev } from '$app/environment';
 // App configuration constants following OpenWebUI format
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'MOSPI';
 
-// Force use of remote backend
-const isLocalhost = false; // Always use remote backend
-
-// CONNECT TO REMOTE BACKEND FOR PRODUCTION
 export const REMOTE_BACKEND_HOST = import.meta.env.VITE_REMOTE_BACKEND_HOST || 'statsdoc.ai.mospi.gov.in';
 export const LOCAL_BACKEND_HOST = import.meta.env.VITE_LOCAL_BACKEND_HOST || 'localhost:8000';
 
-export const WEBUI_HOSTNAME = browser 
-  ? REMOTE_BACKEND_HOST
-  : 'web:8000';
+function isLocalBackendHost(host: string): boolean {
+  return host.includes('localhost') || host.includes('127.0.0.1');
+}
 
-export const WEBUI_BASE_URL = browser 
-  ? `https://${REMOTE_BACKEND_HOST}`
-  : `http://web:8000`;
+function resolveWebuiBaseUrl(): string {
+  const host = REMOTE_BACKEND_HOST;
+  const protocol = isLocalBackendHost(host) ? 'http' : 'https';
+  return `${protocol}://${host}`;
+}
 
+function resolveWebuiWsUrl(): string {
+  const host = REMOTE_BACKEND_HOST;
+  if (isLocalBackendHost(host)) {
+    return `ws://${host}`;
+  }
+  return `wss://${host}`;
+}
+
+export const WEBUI_HOSTNAME = REMOTE_BACKEND_HOST;
+export const WEBUI_BASE_URL = resolveWebuiBaseUrl();
 export const WEBUI_API_BASE_URL = `${WEBUI_BASE_URL}/api`;
-
-// WebSocket URL - use wss for remote backend
-export const WEBSOCKET_BASE_URL = browser 
-  ? `wss://${REMOTE_BACKEND_HOST}`
-  : `ws://web:8000`;
+export const WEBSOCKET_BASE_URL = resolveWebuiWsUrl();
 
 export const WEBUI_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.0';
 export const WEBUI_DESCRIPTION = import.meta.env.VITE_APP_DESCRIPTION || 'Document Processing and Analysis Platform';
