@@ -11,8 +11,7 @@ from django.db.utils import DataError, OperationalError
 
 from docling_core.transforms.chunker.tokenizer.huggingface import HuggingFaceTokenizer
 from transformers import AutoTokenizer
-from docling_core.types.doc.document import DoclingDocument
-from docling.chunking import HybridChunker
+from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 
 
 from qdrant_adapter.qdrant_adapter import init_connection
@@ -30,6 +29,7 @@ from .constants import (
 )
 
 from vanna_adapter.tasks import train_vanna
+from .docling_compat import parse_docling_document
 from .utils import validate_target_ref, export_to_dataframe
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -135,7 +135,7 @@ def process_uploaded_file(file_ids, knowledge_base_id=None):
 
         # Validate Docling JSON
         try:
-            docling_obj: DoclingDocument = DoclingDocument.model_validate(docling_json)
+            docling_obj = parse_docling_document(docling_json)
             print("DoclingDocument validation successful!")
         except Exception as e:
             print(f"Error validating DoclingDocument for file {file.id}: {e}")
@@ -326,7 +326,7 @@ def process_chat_uploaded_file(file_ids, chat_id, user_message_id, language_id=N
 
             # Validate Docling JSON
             try:
-                docling_obj: DoclingDocument = DoclingDocument.model_validate(docling_json)
+                docling_obj = parse_docling_document(docling_json)
                 print("DoclingDocument validation successful!")
             except Exception as e:
                 print(f"Error validating DoclingDocument for file {file.id}: {e}")
@@ -460,7 +460,7 @@ def process_reviewed_file(file_id):
     file.status = POST_REVIEW_PROCESSING
     file.save()
 
-    docling_obj: DoclingDocument = DoclingDocument.model_validate(file.docling_json)
+    docling_obj = parse_docling_document(file.docling_json)
     chunker = HybridChunker()
     chunk_iter = chunker.chunk(docling_obj)
 
@@ -608,13 +608,13 @@ def process_ai_comments(file_id):
     json_data.pop("images", None)  # Remove images if present
     json_data.pop("pictures", None)  # Remove pictures if present
     if "tables" in json_data:
-        docling_obj = DoclingDocument.model_validate(file.docling_json)
+        docling_obj = parse_docling_document(file.docling_json)
         tables_markdown = [
             table.export_to_markdown(docling_obj) for table in docling_obj.tables
         ]
         json_data["tables"] = tables_markdown
     if "texts" in json_data:
-        docling_obj = DoclingDocument.model_validate(file.docling_json)
+        docling_obj = parse_docling_document(file.docling_json)
         texts_markdown = []
         for text in docling_obj.texts:
             updated_text = {

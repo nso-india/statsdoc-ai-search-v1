@@ -76,6 +76,8 @@ class ResponseFeedbackCreateSerializer(StrictFieldValidationMixin, serializers.S
 class ResponseFeedbackSerializer(serializers.ModelSerializer):
     message_id = serializers.IntegerField(source="message.id", read_only=True)
     chat_id = serializers.IntegerField(source="chat.id", read_only=True)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    user_username = serializers.CharField(source="user.username", read_only=True)
     category_label = serializers.SerializerMethodField()
 
     class Meta:
@@ -84,6 +86,8 @@ class ResponseFeedbackSerializer(serializers.ModelSerializer):
             "id",
             "message_id",
             "chat_id",
+            "user_email",
+            "user_username",
             "rating",
             "category",
             "category_label",

@@ -47,12 +47,9 @@ class FeedbackAttachmentSerializer(serializers.ModelSerializer):
     def get_url(self, obj):
 
         request = self.context.get("request")
+        from .utils import build_feedback_attachment_download_url
 
-        if request:
-
-            return request.build_absolute_uri(obj.file.url)
-
-        return obj.file.url
+        return build_feedback_attachment_download_url(obj, request=request, signed=False)
 
 
 

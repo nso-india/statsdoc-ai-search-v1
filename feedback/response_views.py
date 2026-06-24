@@ -13,6 +13,11 @@ from .response_serializers import (
     ResponseFeedbackSerializer,
     ResponseFeedbackSummarySerializer,
 )
+from .query_utils import get_response_feedback_list_queryset, paginate_queryset
+from .mospi_quickreview import (
+    record_mospi_quickreview_sync_failure,
+    submit_response_feedback_to_mospi_quickreview,
+)
 from .utils import build_response_feedback_context
 
 
@@ -46,6 +51,10 @@ class ResponseFeedbackCreateView(APIView):
                 "assistant_response": snapshots["assistant_response"],
             },
         )
+
+        sync_result = submit_response_feedback_to_mospi_quickreview(feedback, force=True)
+        if not sync_result.success:
+            record_mospi_quickreview_sync_failure(feedback, sync_result.error)
 
         return Response(
             ResponseFeedbackSerializer(feedback).data,
@@ -83,24 +92,18 @@ class ResponseFeedbackListView(APIView):
     permission_classes = [IsAuthenticated, IsStaffUser]
 
     def get(self, request):
-        queryset = (
-            ResponseFeedback.objects.select_related("user", "message", "chat")
-            .all()
-            .order_by("-created_at")
+        queryset = get_response_feedback_list_queryset(request.query_params)
+        page = paginate_queryset(queryset, request.query_params)
+        serializer = ResponseFeedbackSerializer(
+            page["results"],
+            many=True,
+            context={"request": request},
         )
-
-        rating = request.query_params.get("rating")
-        if rating:
-            queryset = queryset.filter(rating=rating)
-
-        category = request.query_params.get("category")
-        if category:
-            queryset = queryset.filter(category=category)
-
-        chat_id = request.query_params.get("chat_id")
-        if chat_id:
-            queryset = queryset.filter(chat_id=chat_id)
-
         return Response(
-            ResponseFeedbackSerializer(queryset[:200], many=True).data
+            {
+                "count": page["count"],
+                "page": page["page"],
+                "page_size": page["page_size"],
+                "results": serializer.data,
+            }
         )

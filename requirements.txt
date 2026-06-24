@@ -9,7 +9,8 @@ django-celery-results>=2.4
 gunicorn>=20.1
 whitenoise>=6.0
 requests
-docling>=1.7.0
+docling>=2.67.0
+docling-core[chunking]>=2.59.0
 djangorestframework-simplejwt
 qdrant-client
 qdrant-client[fastembed]

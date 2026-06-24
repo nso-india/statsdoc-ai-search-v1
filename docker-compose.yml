@@ -117,6 +117,8 @@ services:
         DOCLING_SERVE_ENABLE_UI: "true"
         NVIDIA_VISIBLE_DEVICES: "all"
         DOCLING_SERVE_ALLOW_DOWNLOADS: "true"
+        DOCLING_SERVE_MAX_SYNC_WAIT: "600"
+        UVICORN_WORKERS: "1"
       deploy:  # This section is for compatibility with Swarm
         resources:
           reservations:

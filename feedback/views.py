@@ -14,6 +14,8 @@ from .serializers import (
     FeedbackSerializer,
 )
 from .utils import save_feedback_attachments, send_feedback_notification
+from .mospi_portal import record_mospi_portal_sync_failure, submit_feedback_to_mospi_portal
+from .query_utils import get_feedback_list_queryset, paginate_queryset
 from .validators import validate_feedback_attachments
 
 
@@ -46,6 +48,10 @@ class FeedbackCreateView(APIView):
 
         send_feedback_notification(feedback, request=request)
 
+        portal_result = submit_feedback_to_mospi_portal(feedback)
+        if not portal_result.success:
+            record_mospi_portal_sync_failure(feedback, portal_result.error)
+
         attachment_data = FeedbackAttachmentSerializer(
             created_attachments,
             many=True,
@@ -68,14 +74,18 @@ class FeedbackListView(APIView):
     permission_classes = [IsAuthenticated, IsStaffUser]
 
     def get(self, request):
-        queryset = Feedback.objects.prefetch_related("attachments").all()
-        status_filter = request.query_params.get("status")
-        if status_filter:
-            queryset = queryset.filter(status=status_filter)
-
+        queryset = get_feedback_list_queryset(request.query_params)
+        page = paginate_queryset(queryset, request.query_params)
         serializer = FeedbackSerializer(
-            queryset,
+            page["results"],
             many=True,
             context={"request": request},
         )
-        return Response(serializer.data)
+        return Response(
+            {
+                "count": page["count"],
+                "page": page["page"],
+                "page_size": page["page_size"],
+                "results": serializer.data,
+            }
+        )
