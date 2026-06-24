@@ -14,6 +14,10 @@ from .response_serializers import (
     ResponseFeedbackSummarySerializer,
 )
 from .query_utils import get_response_feedback_list_queryset, paginate_queryset
+from .mospi_quickreview import (
+    record_mospi_quickreview_sync_failure,
+    submit_response_feedback_to_mospi_quickreview,
+)
 from .utils import build_response_feedback_context
 
 
@@ -47,6 +51,10 @@ class ResponseFeedbackCreateView(APIView):
                 "assistant_response": snapshots["assistant_response"],
             },
         )
+
+        sync_result = submit_response_feedback_to_mospi_quickreview(feedback, force=True)
+        if not sync_result.success:
+            record_mospi_quickreview_sync_failure(feedback, sync_result.error)
 
         return Response(
             ResponseFeedbackSerializer(feedback).data,

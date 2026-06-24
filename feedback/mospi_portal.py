@@ -53,7 +53,12 @@ def submit_feedback_to_mospi_portal(feedback, *, force=False) -> MospiPortalResu
             verify=getattr(settings, "MOSPI_PORTAL_VERIFY_SSL", True),
         )
         response.raise_for_status()
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as exc:
+            error = f"Invalid JSON response from MoSPI portal: {exc}"
+            record_mospi_portal_sync_failure(feedback, error)
+            return MospiPortalResult(success=False, error=error)
     except requests.RequestException as exc:
         logger.exception("MoSPI portal feedback sync failed for %s", feedback.id)
         return MospiPortalResult(success=False, error=str(exc))
@@ -61,7 +66,17 @@ def submit_feedback_to_mospi_portal(feedback, *, force=False) -> MospiPortalResu
     portal_response = data.get("response") if isinstance(data, dict) else None
     portal_id = None
     if isinstance(portal_response, dict):
-        portal_id = portal_response.get("id")
+        raw_id = portal_response.get("id")
+        if raw_id is not None:
+            try:
+                portal_id = int(raw_id)
+            except (TypeError, ValueError):
+                portal_id = None
+
+    if portal_id is None:
+        error = "MoSPI portal did not return a feedback id"
+        record_mospi_portal_sync_failure(feedback, error)
+        return MospiPortalResult(success=False, error=error)
 
     feedback.mospi_portal_id = portal_id
     feedback.mospi_portal_synced_at = timezone.now()

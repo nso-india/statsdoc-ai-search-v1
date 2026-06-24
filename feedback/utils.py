@@ -131,13 +131,9 @@ def send_feedback_notification(feedback, request=None) -> bool:
 
         for attachment in attachments:
 
-            if request:
-
-                url = request.build_absolute_uri(attachment.file.url)
-
-            else:
-
-                url = attachment.file.url
+            url = build_feedback_attachment_download_url(
+                attachment, request=request, signed=True
+            )
 
             body += (
 

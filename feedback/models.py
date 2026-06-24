@@ -111,6 +111,10 @@ class ResponseFeedback(models.Model):
     details = models.TextField(blank=True, default="")
     user_question = models.TextField(blank=True, default="")
     assistant_response = models.TextField(blank=True, default="")
+    mospi_quickreview_synced_at = models.DateTimeField(null=True, blank=True)
+    mospi_quickreview_sync_error = models.CharField(
+        max_length=500, blank=True, default=""
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

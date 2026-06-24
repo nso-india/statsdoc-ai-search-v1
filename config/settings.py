@@ -118,6 +118,11 @@ MOSPI_PORTAL_FEEDBACK_URL = get_env_variable(
     default="https://datainnovation.mospi.gov.in/api/submitFeedback",
 )
 MOSPI_PORTAL_DATA_SOURCE = get_env_variable("MOSPI_PORTAL_DATA_SOURCE", default="statsdoc")
+MOSPI_PORTAL_PRODUCT = get_env_variable("MOSPI_PORTAL_PRODUCT", default="statsdoc")
+MOSPI_QUICKREVIEW_URL = get_env_variable(
+    "MOSPI_QUICKREVIEW_URL",
+    default="https://datainnovation.mospi.gov.in/api/quickreview",
+)
 MOSPI_PORTAL_ENABLED = get_env_variable("MOSPI_PORTAL_ENABLED", default=True, boolean=True)
 MOSPI_PORTAL_VERIFY_SSL = get_env_variable("MOSPI_PORTAL_VERIFY_SSL", default=True, boolean=True)
 

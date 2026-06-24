@@ -65,3 +65,19 @@ class MospiPortalSyncTestCase(TestCase):
         result = submit_feedback_to_mospi_portal(self.feedback)
         self.assertTrue(result.success)
         mock_post.assert_not_called()
+
+    @override_settings(MOSPI_PORTAL_ENABLED=True)
+    @patch("feedback.mospi_portal.requests.post")
+    def test_submit_fails_when_portal_id_missing(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None
+        mock_response.json.return_value = {"statusCode": True, "response": {}}
+        mock_post.return_value = mock_response
+
+        result = submit_feedback_to_mospi_portal(self.feedback)
+        self.assertFalse(result.success)
+        self.assertIn("feedback id", result.error.lower())
+
+        self.feedback.refresh_from_db()
+        self.assertIsNone(self.feedback.mospi_portal_synced_at)
+        self.assertIn("feedback id", self.feedback.mospi_portal_sync_error.lower())
