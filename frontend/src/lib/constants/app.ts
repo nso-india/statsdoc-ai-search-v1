@@ -3,7 +3,9 @@ import { browser, dev } from '$app/environment';
 // App configuration constants following OpenWebUI format
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'MOSPI';
 
-export const REMOTE_BACKEND_HOST = import.meta.env.VITE_REMOTE_BACKEND_HOST || 'statsdoc.ai.mospi.gov.in';
+export const REMOTE_BACKEND_HOST =
+  import.meta.env.VITE_REMOTE_BACKEND_HOST ||
+  (dev ? import.meta.env.VITE_LOCAL_BACKEND_HOST || 'localhost:8000' : 'statsdoc.ai.mospi.gov.in');
 export const LOCAL_BACKEND_HOST = import.meta.env.VITE_LOCAL_BACKEND_HOST || 'localhost:8000';
 
 function isLocalBackendHost(host: string): boolean {

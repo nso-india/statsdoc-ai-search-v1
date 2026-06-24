@@ -1,9 +1,11 @@
-import { browser } from '$app/environment';
+import { dev } from '$app/environment';
 
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'MOSPI';
 
-// CONNECT TO REMOTE BACKEND FOR PRODUCTION
-export const REMOTE_BACKEND_HOST = import.meta.env.VITE_REMOTE_BACKEND_HOST || 'statsdoc.ai.mospi.gov.in';
+export const REMOTE_BACKEND_HOST =
+	import.meta.env.VITE_REMOTE_BACKEND_HOST ||
+	(dev ? import.meta.env.VITE_LOCAL_BACKEND_HOST || 'localhost:8000' : 'statsdoc.ai.mospi.gov.in');
+export const LOCAL_BACKEND_HOST = import.meta.env.VITE_LOCAL_BACKEND_HOST || 'localhost:8000';
 
 function isLocalBackendHost(host: string): boolean {
 	return host.includes('localhost') || host.includes('127.0.0.1');

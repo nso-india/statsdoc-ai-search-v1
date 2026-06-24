@@ -17,7 +17,32 @@ from .models import FeedbackAttachment
 logger = logging.getLogger(__name__)
 
 
+def build_media_absolute_url(relative_url, request=None):
+    """Build a clickable URL for files stored under MEDIA_URL."""
+    if request:
+        return request.build_absolute_uri(relative_url)
+    base = getattr(settings, "PUBLIC_BACKEND_URL", "").strip()
+    if base:
+        return f"{base.rstrip('/')}{relative_url}"
+    if getattr(settings, "DEBUG", False):
+        return f"http://localhost:8000{relative_url}"
+    return relative_url
 
+
+def build_feedback_attachment_download_url(attachment, request=None, signed=False):
+    """Return staff download URL for a feedback attachment."""
+    from django.urls import reverse
+
+    from .attachment_views import sign_feedback_attachment_id
+
+    path = reverse(
+        "feedback:attachment-download",
+        kwargs={"attachment_id": attachment.id},
+    )
+    if signed:
+        token = sign_feedback_attachment_id(attachment.id)
+        path = f"{path}?access={token}"
+    return build_media_absolute_url(path, request)
 
 
 def get_feedback_notify_recipients():

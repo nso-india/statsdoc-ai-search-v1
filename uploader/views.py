@@ -136,6 +136,7 @@ class RawFileView(APIView):
     Returns the actual file content.
     """
     authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
         try:
@@ -159,7 +160,7 @@ class RawFileView(APIView):
         )
 
         filename = os.path.basename(file_obj.file.name)
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Disposition"] = f'inline; filename="{filename}"'
 
         return response
 

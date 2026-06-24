@@ -9,6 +9,7 @@
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import Database from "@lucide/svelte/icons/database";
   import MessageSquare from "@lucide/svelte/icons/message-square";
+  import ClipboardList from "@lucide/svelte/icons/clipboard-list";
   import FeedbackFormDialog from "./FeedbackFormDialog.svelte";
   import { newChatApi } from "$lib/api/newchat";
   import { user } from "$lib/stores";
@@ -209,6 +210,13 @@
         >
           <FileTextIcon class="size-4" />
           <span>Analytics</span>
+        </a>
+        <a 
+          href="/admin-reports"
+          class="flex items-center gap-3 px-3 py-2 text-sm font-medium sidebar-item rounded-md transition-colors {$page.url.pathname.startsWith('/admin-reports') || $page.url.pathname.startsWith('/feedback-reports') ? 'sidebar-active-item' : ''}"
+        >
+          <ClipboardList class="size-4" />
+          <span>Admin Reports</span>
         </a>
         <a 
           href="/settings"

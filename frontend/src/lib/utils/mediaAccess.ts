@@ -2,13 +2,24 @@
  * Utility functions for accessing protected media files
  */
 
+import { WEBUI_BASE_URL } from '$lib/constants';
+import { tokenManager } from '$lib/auth/tokenManager';
+
+function resolveProtectedMediaUrl(url: string): string {
+	if (url.startsWith('http://') || url.startsWith('https://')) {
+		return url;
+	}
+
+	const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+	return `${WEBUI_BASE_URL}${normalizedPath}`;
+}
+
 /**
  * Opens a protected media file in a new tab with authentication
- * @param url - The media file URL
+ * @param url - The media file URL or API path (e.g. /media/... or /api/files/1/raw/)
  */
 export async function openProtectedMedia(url: string | null | undefined): Promise<void> {
 	try {
-		// Validate URL parameter first
 		if (!url) {
 			console.error('No URL provided to openProtectedMedia');
 			alert('File URL is not available');
@@ -16,25 +27,12 @@ export async function openProtectedMedia(url: string | null | undefined): Promis
 		}
 
 		console.log('Opening protected media:', url);
-		
-		// Get the auth token from localStorage
-		const token = localStorage.getItem('access_token');
-		
-		if (!token) {
-			console.error('No authentication token found');
-			alert('Please log in to view this file');
-			return;
-		}
 
-		// Construct the full URL if it's a relative path
-		const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+		const fullUrl = resolveProtectedMediaUrl(url);
 		console.log('Full URL:', fullUrl);
 
-		// Fetch the file with authentication
-		const response = await fetch(fullUrl, {
-			headers: {
-				'Authorization': `Bearer ${token}`
-			}
+		const response = await tokenManager.makeAuthenticatedRequest(fullUrl, {
+			method: 'GET'
 		});
 
 		console.log('Response status:', response.status, response.statusText);

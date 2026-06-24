@@ -45,6 +45,9 @@ class Feedback(models.Model):
         choices=FEEDBACK_STATUSES,
         default=STATUS_NEW,
     )
+    mospi_portal_id = models.IntegerField(null=True, blank=True)
+    mospi_portal_synced_at = models.DateTimeField(null=True, blank=True)
+    mospi_portal_sync_error = models.CharField(max_length=500, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

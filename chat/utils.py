@@ -89,7 +89,11 @@ def get_qdrant_data(prompt, chat_id, kb_id=None):
         'citations': [
             {
                 'document_name': doc.metadata.get('file_name', 'Unknown Document'),
-                'document_link': doc.metadata.get('file_url', None),
+                'document_link': (
+                    f"/api/files/{doc.metadata['file_id']}/raw/"
+                    if doc.metadata.get('file_id') is not None
+                    else doc.metadata.get('file_url')
+                ),
                 'content': doc.document
             }
             for doc in documents

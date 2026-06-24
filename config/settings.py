@@ -84,13 +84,14 @@ INSTALLED_APPS = [
     "chat",
     "application_settings",
     "feedback",
+    "reports",
 ]
 
 # Custom User Model
 AUTH_USER_MODEL = "user_management.User"
 
 # MOSPI SMTP API Configuration
-MOSPI_SMTP_API_URL = get_env_variable("MOSPI_SMTP_API_URL", "https://datainnovation.mospi.gov.in/api/sendmail")
+PUBLIC_BACKEND_URL = get_env_variable("PUBLIC_BACKEND_URL", default="")
 MOSPI_SMTP_AUTH_KEY = get_env_variable("MOSPI_SMTP_AUTH_KEY", "")
 DEFAULT_FROM_EMAIL = get_env_variable("DEFAULT_FROM_EMAIL", "noreply.nso.india@mospi.gov.in")
 
@@ -110,6 +111,15 @@ EMAIL_VERIFICATION_FROM_EMAIL = DEFAULT_FROM_EMAIL
 FEEDBACK_NOTIFY_EMAILS = get_env_variable(
     "FEEDBACK_NOTIFY_EMAILS", default="di.lab@mospi.gov.in"
 )
+
+# MoSPI Data Innovation Lab central feedback portal
+MOSPI_PORTAL_FEEDBACK_URL = get_env_variable(
+    "MOSPI_PORTAL_FEEDBACK_URL",
+    default="https://datainnovation.mospi.gov.in/api/submitFeedback",
+)
+MOSPI_PORTAL_DATA_SOURCE = get_env_variable("MOSPI_PORTAL_DATA_SOURCE", default="statsdoc")
+MOSPI_PORTAL_ENABLED = get_env_variable("MOSPI_PORTAL_ENABLED", default=True, boolean=True)
+MOSPI_PORTAL_VERIFY_SSL = get_env_variable("MOSPI_PORTAL_VERIFY_SSL", default=True, boolean=True)
 
 MIDDLEWARE = [
     "config.middleware.FixDuplicateHostMiddleware",  # Fix duplicate host headers from proxy
@@ -331,8 +341,10 @@ ANTHROPIC_MODEL = get_env_variable(
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",  # Vite dev server
+    "http://localhost:5174",  # Vite dev server (fallback port)
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",  # Vite dev server
+    "http://127.0.0.1:5174",  # Vite dev server (fallback port)
     "https://mospi.edubildai.com",  # Production frontend domain
     "https://mospiapi.edubildai.com",  # Production API domain
     "https://statsdoc.ai.mospi.gov.in",  # Production MOSPI domain
@@ -383,8 +395,10 @@ CSRF_TRUSTED_ORIGINS = [
     "https://statsdoc.ai.mospi.gov.in",  # Production MOSPI domain
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
     "http://103.48.43.155",
     "https://103.48.43.155",
 ]
