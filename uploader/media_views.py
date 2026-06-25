@@ -6,11 +6,14 @@ import mimetypes
 from pathlib import Path
 
 from django.conf import settings
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import Http404, HttpResponse
+from django.utils.http import content_disposition_header
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.decorators import authentication_classes
+
+from .file_response_utils import build_file_download_response
 
 
 @api_view(["GET"])
@@ -43,9 +46,10 @@ def serve_protected_media(request, file_path):
         response = HttpResponse()
         response["X-Accel-Redirect"] = f"/protected-media/{file_path}"
         response["Content-Type"] = content_type
-        response["Content-Disposition"] = f'inline; filename="{filename}"'
+        response.headers["Content-Disposition"] = content_disposition_header(
+            as_attachment=False,
+            filename=filename,
+        )
         return response
 
-    response = FileResponse(open(full_path, "rb"), content_type=content_type)
-    response["Content-Disposition"] = f'inline; filename="{filename}"'
-    return response
+    return build_file_download_response(full_path, download_name=filename, inline=True)

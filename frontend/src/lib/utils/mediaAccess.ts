@@ -7,7 +7,12 @@ import { tokenManager } from '$lib/auth/tokenManager';
 
 function resolveProtectedMediaUrl(url: string): string {
 	if (url.startsWith('http://') || url.startsWith('https://')) {
-		return url;
+		try {
+			const parsed = new URL(url);
+			return `${WEBUI_BASE_URL}${parsed.pathname}${parsed.search}`;
+		} catch {
+			return url;
+		}
 	}
 
 	const normalizedPath = url.startsWith('/') ? url : `/${url}`;

@@ -9,6 +9,7 @@ import mimetypes
 from django.conf import settings
 
 from .models import UploadedFile, Comment, KnowledgeBase
+from .file_response_utils import build_file_download_response
 from .serializers import (
     UploadedFileSerializer,
     UserProfileSerializer,
@@ -138,9 +139,9 @@ class RawFileView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, pk):
+    def get(self, request, id):
         try:
-            file_obj = UploadedFile.objects.get(pk=pk)
+            file_obj = UploadedFile.objects.get(pk=id)
         except UploadedFile.DoesNotExist:
             raise Http404("File not found")
 
@@ -151,18 +152,12 @@ class RawFileView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        content_type, _ = mimetypes.guess_type(file_obj.file.path)
-        if not content_type:
-            content_type = "application/octet-stream"
-
-        response = FileResponse(
-            open(file_obj.file.path, "rb"), content_type=content_type
+        filename = file_obj.file_name or os.path.basename(file_obj.file.name)
+        return build_file_download_response(
+            file_obj.file.path,
+            download_name=filename,
+            inline=True,
         )
-
-        filename = os.path.basename(file_obj.file.name)
-        response["Content-Disposition"] = f'inline; filename="{filename}"'
-
-        return response
 
 
 class ProcessedFileView(APIView):
@@ -172,9 +167,9 @@ class ProcessedFileView(APIView):
     """
     authentication_classes = [JWTAuthentication]
 
-    def get(self, request, pk):
+    def get(self, request, id):
         try:
-            file_obj = UploadedFile.objects.get(pk=pk)
+            file_obj = UploadedFile.objects.get(pk=id)
         except UploadedFile.DoesNotExist:
             raise Http404("File not found")
 

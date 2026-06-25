@@ -1,11 +1,13 @@
-import mimetypes
 import os
 
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
-from django.http import FileResponse, Http404
+from django.http import Http404
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from uploader.file_response_utils import build_file_download_response
 
 from .models import FeedbackAttachment
 
@@ -39,22 +41,18 @@ class FeedbackAttachmentDownloadView(APIView):
         if not self._has_access(request, attachment.id):
             return Response(
                 {"detail": "Authentication credentials were not provided."},
-                status=403,
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         file_path = attachment.file.path
         if not os.path.isfile(file_path):
             raise Http404("File not found")
 
-        content_type = attachment.content_type or mimetypes.guess_type(file_path)[0]
-        if not content_type:
-            content_type = "application/octet-stream"
-
-        response = FileResponse(open(file_path, "rb"), content_type=content_type)
-        response["Content-Disposition"] = (
-            f'inline; filename="{attachment.original_filename}"'
+        return build_file_download_response(
+            file_path,
+            download_name=attachment.original_filename,
+            inline=True,
         )
-        return response
 
     def _has_access(self, request, attachment_id):
         access_token = (request.query_params.get("access") or "").strip()

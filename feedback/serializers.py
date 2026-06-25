@@ -45,11 +45,13 @@ class FeedbackAttachmentSerializer(serializers.ModelSerializer):
 
 
     def get_url(self, obj):
+        from django.urls import reverse
 
-        request = self.context.get("request")
-        from .utils import build_feedback_attachment_download_url
-
-        return build_feedback_attachment_download_url(obj, request=request, signed=False)
+        # Relative path so the browser always fetches via the current site origin.
+        return reverse(
+            "feedback:attachment-download",
+            kwargs={"attachment_id": obj.id},
+        )
 
 
 
